@@ -16,26 +16,26 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v5
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Set up Java 17
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '17'
+        run: |
+          echo "JAVA_HOME=$JAVA_HOME_17_X64" >> "$GITHUB_ENV"
+          echo "$JAVA_HOME_17_X64/bin" >> "$GITHUB_PATH"
+          java -version
 
       - name: Build Parent and Child APKs
         run: |
           gradle assembleParentDebug assembleChildDebug --stacktrace
 
       - name: Upload Parent APK
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: My-Little-Rewards-Parent-APK
           path: app/build/outputs/apk/parent/debug/app-parent-debug.apk
 
       - name: Upload Child APK
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: My-Little-Rewards-Child-APK
           path: app/build/outputs/apk/child/debug/app-child-debug.apk
