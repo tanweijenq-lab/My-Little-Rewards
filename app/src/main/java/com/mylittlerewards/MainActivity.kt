@@ -4,16 +4,21 @@ package com.mylittlerewards
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -23,9 +28,15 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private val Sky = Color(0xFF83D1F7)
-private val Pale = Color(0xFFEAF8FF)
-private val Ink = Color(0xFF24465C)
+private val Sky = Color(0xFF8BD5F5)
+private val DeepSky = Color(0xFF55B8E8)
+private val PaleBlue = Color(0xFFEAF8FF)
+private val CloudWhite = Color(0xFFFFFFFF)
+private val Cream = Color(0xFFFFFBF0)
+private val Ink = Color(0xFF34566B)
+private val SoftPink = Color(0xFFFFE5EF)
+private val SoftYellow = Color(0xFFFFF2C9)
+private val SoftGreen = Color(0xFFE3F6E9)
 
 private data class TaskItem(
     val id: String,
@@ -50,157 +61,203 @@ private data class RecordItem(
     val date: String
 )
 
-private val translations = mapOf(
+private val words = mapOf(
     "zh" to mapOf(
-        "title" to "My Little Rewards",
-        "parent" to "家长版",
-        "child" to "孩子版",
-        "coins" to "金币",
-        "code" to "家庭配对码",
-        "noFamily" to "尚未加入家庭",
+        "parent" to "家长专属空间",
+        "child" to "我的奖励乐园",
+        "coins" to "我的金币",
+        "family" to "家庭配对码",
         "create" to "创建家庭",
         "join" to "加入家庭",
         "enterCode" to "请输入家长提供的配对码",
-        "tasks" to "任务",
-        "gifts" to "礼物",
-        "wallet" to "钱包",
+        "tasks" to "每日任务",
+        "gifts" to "梦想礼物",
+        "wallet" to "金币账户",
         "newTask" to "新增任务",
         "taskName" to "任务名称",
-        "taskCoins" to "金币奖励",
-        "daily" to "每日任务",
+        "taskCoins" to "完成奖励金币",
+        "daily" to "每日重复任务",
         "addTask" to "添加任务",
-        "submit" to "提交完成",
-        "waitingParent" to "等待家长批准",
+        "submit" to "我完成了！",
+        "waitingParent" to "等待家长确认",
         "waitingChild" to "等待孩子完成",
-        "approved" to "已批准",
-        "approveTask" to "批准并发放金币",
+        "approved" to "已完成并获得奖励",
+        "approveTask" to "确认并发放金币",
         "delete" to "删除任务",
-        "newGift" to "新增礼物",
+        "newGift" to "新增梦想礼物",
         "giftName" to "礼物名称",
-        "giftPrice" to "金币价格",
+        "giftPrice" to "兑换所需金币",
         "addGift" to "添加礼物",
         "requestGift" to "申请兑换",
         "approveGift" to "批准兑换",
-        "redeemed" to "已兑换",
-        "exam" to "考试奖励",
+        "redeemed" to "已经兑换",
+        "exam" to "考试成绩奖励",
         "score" to "考试分数（0–100）",
-        "giveReward" to "计算并发放奖励",
-        "history" to "金币记录",
-        "balance" to "金币余额",
+        "giveReward" to "发放考试奖励",
+        "history" to "金币收支记录",
+        "balance" to "目前金币余额",
         "language" to "语言",
         "connecting" to "正在连接 Firebase…",
-        "noRecords" to "暂时没有记录",
+        "noRecords" to "暂时还没有记录",
         "examRule" to "90–100 分：30 金币\n80–89 分：20 金币\n70–79 分：10 金币\n低于 70 分：0 金币",
-        "processing" to "正在处理…"
+        "processing" to "处理中…",
+        "noFamily" to "尚未连接家庭",
+        "hello" to "今天也要加油哦！",
+        "parentTip" to "管理任务、奖励和孩子的金币。",
+        "childTip" to "完成小任务，收集金币，兑换喜欢的礼物！",
+        "noTasks" to "还没有任务，等待家长添加吧！",
+        "noGifts" to "还没有礼物，等待家长添加吧！",
+        "taskTitle" to "任务小天地",
+        "giftTitle" to "我的梦想礼物",
+        "walletTitle" to "我的金币小银行",
+        "codeTip" to "请把这个配对码交给孩子的手机。",
+        "insufficient" to "金币不足，暂时不能兑换。",
+        "logoutFamily" to "解除本机家庭连接",
+        "confirmReset" to "确定要解除本机连接吗？",
+        "cancel" to "取消",
+        "confirm" to "确定",
+        "pending" to "等待处理",
+        "dailyTag" to "每日",
+        "onceTag" to "单次"
     ),
     "ms" to mapOf(
-        "title" to "My Little Rewards",
-        "parent" to "Ibu Bapa",
-        "child" to "Anak",
-        "coins" to "Syiling",
-        "code" to "Kod keluarga",
-        "noFamily" to "Belum menyertai keluarga",
-        "create" to "Cipta keluarga",
-        "join" to "Sertai keluarga",
+        "parent" to "Ruang Ibu Bapa",
+        "child" to "Taman Ganjaran Saya",
+        "coins" to "Syiling Saya",
+        "family" to "Kod Keluarga",
+        "create" to "Cipta Keluarga",
+        "join" to "Sertai Keluarga",
         "enterCode" to "Masukkan kod daripada ibu bapa",
         "tasks" to "Tugasan",
-        "gifts" to "Hadiah",
-        "wallet" to "Dompet",
-        "newTask" to "Tambah tugasan",
-        "taskName" to "Nama tugasan",
-        "taskCoins" to "Ganjaran syiling",
-        "daily" to "Tugasan harian",
-        "addTask" to "Tambah tugasan",
-        "submit" to "Hantar selesai",
-        "waitingParent" to "Menunggu kelulusan ibu bapa",
+        "gifts" to "Hadiah Impian",
+        "wallet" to "Dompet Syiling",
+        "newTask" to "Tambah Tugasan",
+        "taskName" to "Nama Tugasan",
+        "taskCoins" to "Ganjaran Syiling",
+        "daily" to "Tugasan Harian",
+        "addTask" to "Tambah Tugasan",
+        "submit" to "Saya Siap!",
+        "waitingParent" to "Menunggu pengesahan ibu bapa",
         "waitingChild" to "Menunggu anak",
-        "approved" to "Diluluskan",
+        "approved" to "Selesai dan diberi ganjaran",
         "approveTask" to "Luluskan dan beri syiling",
-        "delete" to "Padam tugasan",
-        "newGift" to "Tambah hadiah",
-        "giftName" to "Nama hadiah",
-        "giftPrice" to "Harga syiling",
-        "addGift" to "Tambah hadiah",
-        "requestGift" to "Mohon tebus",
-        "approveGift" to "Luluskan penebusan",
+        "delete" to "Padam",
+        "newGift" to "Tambah Hadiah",
+        "giftName" to "Nama Hadiah",
+        "giftPrice" to "Harga Syiling",
+        "addGift" to "Tambah Hadiah",
+        "requestGift" to "Mohon Tebus",
+        "approveGift" to "Luluskan Tebusan",
         "redeemed" to "Telah ditebus",
-        "exam" to "Ganjaran peperiksaan",
-        "score" to "Markah peperiksaan (0–100)",
-        "giveReward" to "Kira dan beri ganjaran",
-        "history" to "Rekod syiling",
-        "balance" to "Baki syiling",
+        "exam" to "Ganjaran Peperiksaan",
+        "score" to "Markah Peperiksaan (0–100)",
+        "giveReward" to "Beri Ganjaran",
+        "history" to "Sejarah Syiling",
+        "balance" to "Baki Syiling",
         "language" to "Bahasa",
-        "connecting" to "Menyambung ke Firebase…",
+        "connecting" to "Menyambung Firebase…",
         "noRecords" to "Tiada rekod lagi",
         "examRule" to "90–100: 30 syiling\n80–89: 20 syiling\n70–79: 10 syiling\nBawah 70: 0 syiling",
-        "processing" to "Sedang diproses…"
+        "processing" to "Memproses…",
+        "noFamily" to "Belum menyertai keluarga",
+        "hello" to "Teruskan usaha hari ini!",
+        "parentTip" to "Urus tugasan, hadiah dan syiling anak.",
+        "childTip" to "Siapkan tugasan dan kumpul syiling!",
+        "noTasks" to "Tiada tugasan lagi.",
+        "noGifts" to "Tiada hadiah lagi.",
+        "taskTitle" to "Tugasan Saya",
+        "giftTitle" to "Hadiah Impian Saya",
+        "walletTitle" to "Bank Syiling Saya",
+        "codeTip" to "Berikan kod ini kepada telefon anak.",
+        "insufficient" to "Syiling tidak mencukupi.",
+        "logoutFamily" to "Putuskan sambungan keluarga",
+        "confirmReset" to "Putuskan sambungan pada telefon ini?",
+        "cancel" to "Batal",
+        "confirm" to "Sahkan",
+        "pending" to "Menunggu",
+        "dailyTag" to "Harian",
+        "onceTag" to "Sekali"
     ),
     "en" to mapOf(
-        "title" to "My Little Rewards",
-        "parent" to "Parent",
-        "child" to "Child",
-        "coins" to "Coins",
-        "code" to "Family code",
-        "noFamily" to "Not connected to a family",
-        "create" to "Create family",
-        "join" to "Join family",
+        "parent" to "Parent Space",
+        "child" to "My Reward Garden",
+        "coins" to "My Coins",
+        "family" to "Family Code",
+        "create" to "Create Family",
+        "join" to "Join Family",
         "enterCode" to "Enter the code from your parent",
         "tasks" to "Tasks",
-        "gifts" to "Gifts",
-        "wallet" to "Wallet",
-        "newTask" to "New task",
-        "taskName" to "Task name",
-        "taskCoins" to "Coin reward",
-        "daily" to "Daily task",
-        "addTask" to "Add task",
-        "submit" to "Submit completed",
-        "waitingParent" to "Waiting for parent approval",
+        "gifts" to "Dream Gifts",
+        "wallet" to "Coin Wallet",
+        "newTask" to "New Task",
+        "taskName" to "Task Name",
+        "taskCoins" to "Coin Reward",
+        "daily" to "Daily Task",
+        "addTask" to "Add Task",
+        "submit" to "I did it!",
+        "waitingParent" to "Waiting for parent",
         "waitingChild" to "Waiting for child",
-        "approved" to "Approved",
+        "approved" to "Completed and rewarded",
         "approveTask" to "Approve and give coins",
-        "delete" to "Delete task",
-        "newGift" to "New gift",
-        "giftName" to "Gift name",
-        "giftPrice" to "Coin price",
-        "addGift" to "Add gift",
-        "requestGift" to "Request gift",
-        "approveGift" to "Approve redemption",
+        "delete" to "Delete",
+        "newGift" to "New Gift",
+        "giftName" to "Gift Name",
+        "giftPrice" to "Coin Price",
+        "addGift" to "Add Gift",
+        "requestGift" to "Request Gift",
+        "approveGift" to "Approve Redemption",
         "redeemed" to "Redeemed",
-        "exam" to "Exam reward",
-        "score" to "Exam score (0–100)",
-        "giveReward" to "Calculate and give reward",
-        "history" to "Coin history",
-        "balance" to "Coin balance",
+        "exam" to "Exam Rewards",
+        "score" to "Exam Score (0–100)",
+        "giveReward" to "Give Exam Reward",
+        "history" to "Coin History",
+        "balance" to "Current Balance",
         "language" to "Language",
         "connecting" to "Connecting to Firebase…",
         "noRecords" to "No records yet",
         "examRule" to "90–100: 30 coins\n80–89: 20 coins\n70–79: 10 coins\nBelow 70: 0 coins",
-        "processing" to "Processing…"
+        "processing" to "Processing…",
+        "noFamily" to "Not connected",
+        "hello" to "Let's do our best today!",
+        "parentTip" to "Manage tasks, gifts and your child's coins.",
+        "childTip" to "Complete tasks, collect coins and enjoy rewards!",
+        "noTasks" to "No tasks yet.",
+        "noGifts" to "No gifts yet.",
+        "taskTitle" to "My Tasks",
+        "giftTitle" to "My Dream Gifts",
+        "walletTitle" to "My Coin Bank",
+        "codeTip" to "Share this code with your child's phone.",
+        "insufficient" to "Not enough coins.",
+        "logoutFamily" to "Disconnect this device",
+        "confirmReset" to "Disconnect this device from the family?",
+        "cancel" to "Cancel",
+        "confirm" to "Confirm",
+        "pending" to "Pending",
+        "dailyTag" to "Daily",
+        "onceTag" to "Once"
     ),
     "vi" to mapOf(
-        "title" to "My Little Rewards",
-        "parent" to "Phụ huynh",
-        "child" to "Trẻ em",
-        "coins" to "Xu",
-        "code" to "Mã gia đình",
-        "noFamily" to "Chưa tham gia gia đình",
+        "parent" to "Khu vực phụ huynh",
+        "child" to "Vườn phần thưởng",
+        "coins" to "Xu của tôi",
+        "family" to "Mã gia đình",
         "create" to "Tạo gia đình",
-        "join" to "Tham gia",
-        "enterCode" to "Nhập mã do phụ huynh cung cấp",
+        "join" to "Tham gia gia đình",
+        "enterCode" to "Nhập mã từ phụ huynh",
         "tasks" to "Nhiệm vụ",
-        "gifts" to "Quà tặng",
+        "gifts" to "Quà mơ ước",
         "wallet" to "Ví xu",
         "newTask" to "Thêm nhiệm vụ",
         "taskName" to "Tên nhiệm vụ",
         "taskCoins" to "Số xu thưởng",
         "daily" to "Nhiệm vụ hằng ngày",
         "addTask" to "Thêm nhiệm vụ",
-        "submit" to "Gửi hoàn thành",
-        "waitingParent" to "Đang chờ phụ huynh duyệt",
-        "waitingChild" to "Đang chờ trẻ hoàn thành",
-        "approved" to "Đã duyệt",
-        "approveTask" to "Duyệt và thưởng xu",
-        "delete" to "Xóa nhiệm vụ",
+        "submit" to "Con đã làm xong!",
+        "waitingParent" to "Chờ phụ huynh xác nhận",
+        "waitingChild" to "Chờ trẻ hoàn thành",
+        "approved" to "Đã hoàn thành và nhận thưởng",
+        "approveTask" to "Duyệt và trao xu",
+        "delete" to "Xóa",
         "newGift" to "Thêm quà",
         "giftName" to "Tên quà",
         "giftPrice" to "Giá xu",
@@ -208,23 +265,41 @@ private val translations = mapOf(
         "requestGift" to "Yêu cầu đổi quà",
         "approveGift" to "Duyệt đổi quà",
         "redeemed" to "Đã đổi",
-        "exam" to "Thưởng thi cử",
+        "exam" to "Thưởng điểm thi",
         "score" to "Điểm thi (0–100)",
-        "giveReward" to "Tính và trao thưởng",
+        "giveReward" to "Trao thưởng",
         "history" to "Lịch sử xu",
         "balance" to "Số dư xu",
         "language" to "Ngôn ngữ",
         "connecting" to "Đang kết nối Firebase…",
         "noRecords" to "Chưa có lịch sử",
-        "examRule" to "90–100 điểm: 30 xu\n80–89 điểm: 20 xu\n70–79 điểm: 10 xu\nDưới 70: 0 xu",
-        "processing" to "Đang xử lý…"
+        "examRule" to "90–100: 30 xu\n80–89: 20 xu\n70–79: 10 xu\nDưới 70: 0 xu",
+        "processing" to "Đang xử lý…",
+        "noFamily" to "Chưa kết nối gia đình",
+        "hello" to "Hôm nay cũng cố gắng nhé!",
+        "parentTip" to "Quản lý nhiệm vụ, quà và xu của trẻ.",
+        "childTip" to "Hoàn thành nhiệm vụ để nhận xu!",
+        "noTasks" to "Chưa có nhiệm vụ.",
+        "noGifts" to "Chưa có quà.",
+        "taskTitle" to "Nhiệm vụ của tôi",
+        "giftTitle" to "Quà mơ ước",
+        "walletTitle" to "Ngân hàng xu",
+        "codeTip" to "Chia sẻ mã này với điện thoại của trẻ.",
+        "insufficient" to "Không đủ xu.",
+        "logoutFamily" to "Ngắt kết nối thiết bị",
+        "confirmReset" to "Ngắt kết nối gia đình trên thiết bị này?",
+        "cancel" to "Hủy",
+        "confirm" to "Xác nhận",
+        "pending" to "Đang chờ",
+        "dailyTag" to "Hằng ngày",
+        "onceTag" to "Một lần"
     )
 )
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val isParent = applicationContext.packageName.endsWith(".parent")
+        val isParent = packageName.endsWith(".parent")
         setContent {
             RewardsApp(isParent)
         }
@@ -267,6 +342,7 @@ private fun RewardsApp(isParent: Boolean) {
     var selectedTab by remember { mutableStateOf("tasks") }
     var message by remember { mutableStateOf("正在连接 Firebase…") }
     var loading by remember { mutableStateOf(false) }
+    var showDisconnectDialog by remember { mutableStateOf(false) }
 
     var familyListener by remember { mutableStateOf<ListenerRegistration?>(null) }
     var taskListener by remember { mutableStateOf<ListenerRegistration?>(null) }
@@ -274,9 +350,7 @@ private fun RewardsApp(isParent: Boolean) {
     var recordListener by remember { mutableStateOf<ListenerRegistration?>(null) }
 
     fun tr(key: String): String =
-        translations[language]?.get(key)
-            ?: translations["zh"]?.get(key)
-            ?: key
+        words[language]?.get(key) ?: words["zh"]?.get(key) ?: key
 
     fun stopListeners() {
         familyListener?.remove()
@@ -301,6 +375,8 @@ private fun RewardsApp(isParent: Boolean) {
                 message = "家庭资料读取失败：${error.message}"
             } else if (snapshot != null && snapshot.exists()) {
                 coins = (snapshot.getLong("coins") ?: 0L).toInt()
+            } else {
+                message = "找不到家庭资料，请检查配对码。"
             }
         }
 
@@ -358,7 +434,7 @@ private fun RewardsApp(isParent: Boolean) {
                 }
             }
 
-        message = "${tr("connected")}：$code"
+        message = "已连接家庭：$code"
     }
 
     LaunchedEffect(Unit) {
@@ -384,9 +460,9 @@ private fun RewardsApp(isParent: Boolean) {
                 connectFamily(savedCode)
             } else {
                 message = if (isParent) {
-                    "请创建家庭，取得孩子配对码"
+                    "请创建家庭，取得孩子配对码。"
                 } else {
-                    "请向家长索取家庭配对码"
+                    "请向家长索取家庭配对码。"
                 }
             }
         }
@@ -418,7 +494,7 @@ private fun RewardsApp(isParent: Boolean) {
             .addOnSuccessListener {
                 loading = false
                 connectFamily(code)
-                message = "${tr("create")}成功！配对码：$code"
+                message = "家庭创建成功！配对码：$code"
             }
             .addOnFailureListener {
                 loading = false
@@ -436,12 +512,12 @@ private fun RewardsApp(isParent: Boolean) {
         db.runTransaction { transaction ->
             val snapshot = transaction.get(family)
             if (!snapshot.exists()) {
-                throw Exception("找不到家庭，请检查配对码")
+                throw Exception("找不到家庭，请检查配对码。")
             }
 
             val childUid = snapshot.getString("childUid") ?: ""
             if (childUid.isNotBlank() && childUid != uid) {
-                throw Exception("这个家庭已经绑定其他孩子账号")
+                throw Exception("这个家庭已经绑定其他孩子账号。")
             }
 
             transaction.update(family, "childUid", uid)
@@ -449,7 +525,7 @@ private fun RewardsApp(isParent: Boolean) {
         }.addOnSuccessListener {
             loading = false
             connectFamily(code)
-            message = tr("join") + "成功"
+            message = "成功加入家庭！"
         }.addOnFailureListener {
             loading = false
             message = "加入失败：${it.message}"
@@ -459,7 +535,7 @@ private fun RewardsApp(isParent: Boolean) {
     fun addTask() {
         val reward = taskCoins.toIntOrNull()
         if (taskName.isBlank() || reward == null || reward <= 0) {
-            message = "请填写正确的任务名称和金币"
+            message = "请填写正确的任务名称和金币数量。"
             return
         }
 
@@ -477,7 +553,7 @@ private fun RewardsApp(isParent: Boolean) {
             .addOnSuccessListener {
                 taskName = ""
                 taskCoins = "5"
-                message = "任务已添加"
+                message = "任务已添加！"
             }
             .addOnFailureListener {
                 message = "添加失败：${it.message}"
@@ -491,7 +567,7 @@ private fun RewardsApp(isParent: Boolean) {
             .collection("tasks").document(task.id)
             .update("submitted", true)
             .addOnSuccessListener {
-                message = "已提交，等待家长批准"
+                message = "已提交，等待家长批准！"
             }
             .addOnFailureListener {
                 message = "提交失败：${it.message}"
@@ -508,28 +584,26 @@ private fun RewardsApp(isParent: Boolean) {
             transaction.get(family)
 
             if (taskSnapshot.getBoolean("approved") == true) {
-                throw Exception("这个任务已经批准")
+                throw Exception("这个任务已经批准。")
             }
             if (taskSnapshot.getBoolean("submitted") != true) {
-                throw Exception("孩子还没有提交任务")
+                throw Exception("孩子还没有提交任务。")
             }
 
-            val actualCoins =
-                (taskSnapshot.getLong("coins") ?: 0L).toInt()
-            val actualName =
-                taskSnapshot.getString("name") ?: task.name
+            val reward = taskSnapshot.getLong("coins") ?: 0L
+            val name = taskSnapshot.getString("name") ?: task.name
 
             transaction.update(taskRef, "approved", true)
             transaction.update(
                 family,
                 "coins",
-                FieldValue.increment(actualCoins.toLong())
+                FieldValue.increment(reward)
             )
             transaction.set(
                 recordRef,
                 mapOf(
-                    "description" to "任务奖励：$actualName",
-                    "amount" to actualCoins,
+                    "description" to "任务奖励：$name",
+                    "amount" to reward.toInt(),
                     "date" to SimpleDateFormat(
                         "yyyy-MM-dd HH:mm",
                         Locale.getDefault()
@@ -539,7 +613,7 @@ private fun RewardsApp(isParent: Boolean) {
             )
             null
         }.addOnSuccessListener {
-            message = "已批准，金币已发放"
+            message = "任务已批准，金币已发放！"
         }.addOnFailureListener {
             message = "批准失败：${it.message}"
         }
@@ -550,7 +624,7 @@ private fun RewardsApp(isParent: Boolean) {
             .collection("tasks").document(task.id)
             .delete()
             .addOnSuccessListener {
-                message = "任务已删除"
+                message = "任务已删除。"
             }
             .addOnFailureListener {
                 message = "删除失败：${it.message}"
@@ -560,7 +634,7 @@ private fun RewardsApp(isParent: Boolean) {
     fun addGift() {
         val price = giftPrice.toIntOrNull()
         if (giftName.isBlank() || price == null || price <= 0) {
-            message = "请填写正确的礼物名称和金币价格"
+            message = "请填写正确的礼物名称和金币价格。"
             return
         }
 
@@ -577,7 +651,7 @@ private fun RewardsApp(isParent: Boolean) {
             .addOnSuccessListener {
                 giftName = ""
                 giftPrice = "20"
-                message = "礼物已添加"
+                message = "礼物已添加！"
             }
             .addOnFailureListener {
                 message = "添加失败：${it.message}"
@@ -591,7 +665,7 @@ private fun RewardsApp(isParent: Boolean) {
             .collection("gifts").document(gift.id)
             .update("requested", true)
             .addOnSuccessListener {
-                message = "兑换申请已提交"
+                message = "兑换申请已提交！"
             }
             .addOnFailureListener {
                 message = "申请失败：${it.message}"
@@ -609,32 +683,30 @@ private fun RewardsApp(isParent: Boolean) {
             val balance = familySnapshot.getLong("coins") ?: 0L
 
             if (giftSnapshot.getBoolean("approved") == true) {
-                throw Exception("这个礼物已经兑换")
+                throw Exception("这个礼物已经兑换。")
             }
             if (giftSnapshot.getBoolean("requested") != true) {
-                throw Exception("孩子还没有申请兑换")
+                throw Exception("孩子还没有申请兑换。")
             }
 
-            val actualPrice =
-                (giftSnapshot.getLong("price") ?: 0L).toInt()
-            val actualName =
-                giftSnapshot.getString("name") ?: gift.name
+            val price = giftSnapshot.getLong("price") ?: 0L
+            val name = giftSnapshot.getString("name") ?: gift.name
 
-            if (balance < actualPrice) {
-                throw Exception("金币不足，无法兑换")
+            if (balance < price) {
+                throw Exception("金币不足，无法兑换。")
             }
 
             transaction.update(giftRef, "approved", true)
             transaction.update(
                 family,
                 "coins",
-                FieldValue.increment(-actualPrice.toLong())
+                FieldValue.increment(-price)
             )
             transaction.set(
                 recordRef,
                 mapOf(
-                    "description" to "兑换礼物：$actualName",
-                    "amount" to -actualPrice,
+                    "description" to "兑换礼物：$name",
+                    "amount" to -price.toInt(),
                     "date" to SimpleDateFormat(
                         "yyyy-MM-dd HH:mm",
                         Locale.getDefault()
@@ -644,7 +716,7 @@ private fun RewardsApp(isParent: Boolean) {
             )
             null
         }.addOnSuccessListener {
-            message = "礼物兑换已批准"
+            message = "礼物兑换已批准！"
         }.addOnFailureListener {
             message = "兑换失败：${it.message}"
         }
@@ -653,7 +725,7 @@ private fun RewardsApp(isParent: Boolean) {
     fun addExamReward() {
         val score = examScore.toIntOrNull()
         if (score == null || score !in 0..100) {
-            message = "请输入 0 至 100 的分数"
+            message = "请输入 0 至 100 的考试分数。"
             return
         }
 
@@ -689,239 +761,374 @@ private fun RewardsApp(isParent: Boolean) {
             null
         }.addOnSuccessListener {
             examScore = ""
-            message = "考试奖励已发放：$reward 金币"
+            message = "考试奖励已发放：$reward 金币！"
         }.addOnFailureListener {
             message = "发放失败：${it.message}"
         }
     }
 
+    fun disconnectDevice() {
+        stopListeners()
+        prefs.edit().remove("familyCode").apply()
+        familyCode = ""
+        coins = 0
+        tasks = emptyList()
+        gifts = emptyList()
+        records = emptyList()
+        inputCode = ""
+        message = "本机已解除家庭连接。"
+    }
+
     MaterialTheme(
         colorScheme = lightColorScheme(
-            primary = Sky,
+            primary = DeepSky,
+            onPrimary = Color.White,
             secondary = Ink,
-            background = Pale
+            background = PaleBlue,
+            surface = CloudWhite
         )
     ) {
         Surface(
             modifier = Modifier.fillMaxSize(),
-            color = Pale
+            color = PaleBlue
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Text(
-                    "☁️ ${tr("title")}",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = Ink
-                )
-
-                Text(
-                    if (isParent) "👨‍👩‍👧 ${tr("parent")}"
-                    else "🐶 ${tr("child")}",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Ink
-                )
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text("${tr("language")}：", color = Ink)
-                    listOf(
-                        "zh" to "中文",
-                        "ms" to "BM",
-                        "en" to "English",
-                        "vi" to "Tiếng Việt"
-                    ).forEach { option ->
-                        FilterChip(
-                            selected = language == option.first,
-                            onClick = {
-                                language = option.first
-                                prefs.edit()
-                                    .putString("language", language)
-                                    .apply()
-                            },
-                            label = { Text(option.second) }
-                        )
-                    }
-                }
-
+                // 顶部玉桂狗风格标题
                 Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(28.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = Color.White
+                        containerColor = Sky
                     )
                 ) {
-                    Column(Modifier.padding(16.dp)) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(18.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
                         Text(
-                            "🪙 $coins ${tr("coins")}",
-                            style = MaterialTheme.typography.headlineMedium,
+                            "☁️ ૮₍˶ᵔ ᵕ ᵔ˶₎ა ☁️",
+                            fontSize = 27.sp,
+                            color = Color.White
+                        )
+                        Text(
+                            "MY LITTLE REWARDS",
+                            fontSize = 21.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White,
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            if (isParent) tr("parent") else tr("child"),
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold,
                             color = Ink
                         )
                         Text(
-                            "${tr("code")}：${
-                                familyCode.ifBlank { tr("noFamily") }
-                            }",
+                            tr("hello"),
+                            fontSize = 13.sp,
                             color = Ink
                         )
                     }
                 }
 
-                if (uid.isBlank()) {
-                    CircularProgressIndicator()
-                    Text(tr("connecting"), color = Ink)
-                } else if (familyCode.isBlank()) {
-                    if (isParent) {
+                // 语言选择
+                Card(
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = CloudWhite
+                    )
+                ) {
+                    Column(Modifier.padding(12.dp)) {
                         Text(
-                            "创建家庭后，把配对码交给孩子。",
-                            color = Ink
+                            "🌐 ${tr("language")}",
+                            color = Ink,
+                            fontWeight = FontWeight.Bold
                         )
-                        Button(
-                            onClick = { createFamily() },
-                            enabled = !loading,
-                            modifier = Modifier.fillMaxWidth()
+                        Spacer(Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(5.dp)
                         ) {
+                            listOf(
+                                "zh" to "中文",
+                                "ms" to "BM",
+                                "en" to "EN",
+                                "vi" to "VI"
+                            ).forEach { option ->
+                                FilterChip(
+                                    modifier = Modifier.weight(1f),
+                                    selected = language == option.first,
+                                    onClick = {
+                                        language = option.first
+                                        prefs.edit()
+                                            .putString("language", language)
+                                            .apply()
+                                    },
+                                    label = {
+                                        Text(
+                                            option.second,
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // 金币余额卡片
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(26.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = SoftYellow
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(18.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
                             Text(
-                                if (loading) tr("processing")
-                                else tr("create")
+                                tr("coins"),
+                                color = Ink,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                            Text(
+                                "$coins",
+                                color = Ink,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 38.sp
+                            )
+                            Text(
+                                tr("balance"),
+                                color = Ink,
+                                fontSize = 12.sp
                             )
                         }
-                    } else {
-                        Text(tr("enterCode"), color = Ink)
-                        OutlinedTextField(
-                            value = inputCode,
-                            onValueChange = {
-                                inputCode = it.uppercase(Locale.ROOT)
-                            },
-                            label = { Text(tr("code")) },
-                            modifier = Modifier.fillMaxWidth()
+                        Text("🪙 ⭐", fontSize = 36.sp)
+                    }
+                }
+
+                // 家庭配对区域
+                if (uid.isBlank()) {
+                    CuteCard {
+                        CircularProgressIndicator(color = DeepSky)
+                        Text(tr("connecting"), color = Ink)
+                    }
+                } else if (familyCode.isBlank()) {
+                    CuteCard {
+                        Text(
+                            "☁️ ${tr("family")}",
+                            fontSize = 19.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Ink
                         )
-                        Button(
-                            onClick = { joinFamily() },
-                            enabled = !loading && inputCode.isNotBlank(),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
+                        if (isParent) {
                             Text(
-                                if (loading) tr("processing")
-                                else tr("join")
+                                "创建家庭后，把配对码交给孩子的手机。",
+                                color = Ink
+                            )
+                            CuteButton(
+                                text = if (loading) tr("processing")
+                                else "✨ ${tr("create")}",
+                                enabled = !loading,
+                                onClick = { createFamily() }
+                            )
+                        } else {
+                            Text(tr("enterCode"), color = Ink)
+                            OutlinedTextField(
+                                value = inputCode,
+                                onValueChange = {
+                                    inputCode = it.uppercase(Locale.ROOT)
+                                },
+                                label = { Text(tr("family")) },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp),
+                                singleLine = true
+                            )
+                            CuteButton(
+                                text = if (loading) tr("processing")
+                                else "💙 ${tr("join")}",
+                                enabled = !loading && inputCode.isNotBlank(),
+                                onClick = { joinFamily() }
                             )
                         }
                     }
                 } else {
+                    // 家庭配对码
+                    CuteCard {
+                        Text(
+                            "🏡 ${tr("family")}",
+                            color = Ink,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            familyCode,
+                            color = DeepSky,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = 3.sp
+                        )
+                        if (isParent) {
+                            Text(tr("codeTip"), color = Ink, fontSize = 12.sp)
+                        }
+                    }
+
+                    Text(
+                        if (isParent) tr("parentTip") else tr("childTip"),
+                        color = Ink,
+                        fontSize = 13.sp
+                    )
+
+                    // 三个主功能标签
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(7.dp)
                     ) {
-                        listOf(
-                            "tasks" to tr("tasks"),
-                            "gifts" to tr("gifts"),
-                            "wallet" to tr("wallet")
-                        ).forEach { tab ->
-                            FilterChip(
-                                selected = selectedTab == tab.first,
-                                onClick = { selectedTab = tab.first },
-                                label = { Text(tab.second) }
-                            )
+                        CuteTab(
+                            modifier = Modifier.weight(1f),
+                            selected = selectedTab == "tasks",
+                            text = "📋\n${tr("tasks")}"
+                        ) {
+                            selectedTab = "tasks"
+                        }
+                        CuteTab(
+                            modifier = Modifier.weight(1f),
+                            selected = selectedTab == "gifts",
+                            text = "🎁\n${tr("gifts")}"
+                        ) {
+                            selectedTab = "gifts"
+                        }
+                        CuteTab(
+                            modifier = Modifier.weight(1f),
+                            selected = selectedTab == "wallet",
+                            text = "🪙\n${tr("wallet")}"
+                        ) {
+                            selectedTab = "wallet"
                         }
                     }
 
                     when (selectedTab) {
                         "tasks" -> {
+                            SectionTitle("☁️ ${tr("taskTitle")}")
+
                             if (isParent) {
-                                Text(
-                                    tr("newTask"),
-                                    color = Ink,
-                                    style = MaterialTheme.typography.titleLarge
-                                )
-                                OutlinedTextField(
-                                    value = taskName,
-                                    onValueChange = { taskName = it },
-                                    label = { Text(tr("taskName")) },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                OutlinedTextField(
-                                    value = taskCoins,
-                                    onValueChange = {
-                                        taskCoins = it.filter(Char::isDigit)
-                                    },
-                                    label = { Text(tr("taskCoins")) },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Checkbox(
-                                        checked = daily,
-                                        onCheckedChange = { daily = it }
+                                CuteCard {
+                                    Text(
+                                        "➕ ${tr("newTask")}",
+                                        color = Ink,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 17.sp
                                     )
-                                    Text(tr("daily"), color = Ink)
-                                }
-                                Button(
-                                    onClick = { addTask() },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(tr("addTask"))
+                                    OutlinedTextField(
+                                        value = taskName,
+                                        onValueChange = { taskName = it },
+                                        label = { Text(tr("taskName")) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(16.dp),
+                                        singleLine = true
+                                    )
+                                    OutlinedTextField(
+                                        value = taskCoins,
+                                        onValueChange = {
+                                            taskCoins = it.filter(Char::isDigit)
+                                        },
+                                        label = { Text(tr("taskCoins")) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(16.dp),
+                                        singleLine = true
+                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Checkbox(
+                                            checked = daily,
+                                            onCheckedChange = { daily = it }
+                                        )
+                                        Text(tr("daily"), color = Ink)
+                                    }
+                                    CuteButton(
+                                        text = "＋ ${tr("addTask")}",
+                                        onClick = { addTask() }
+                                    )
                                 }
                             }
 
+                            if (tasks.isEmpty()) {
+                                EmptyCard("☁️", tr("noTasks"))
+                            }
+
                             tasks.forEach { task ->
-                                Card(
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = Color.White
-                                    )
-                                ) {
-                                    Column(
-                                        Modifier.padding(12.dp),
-                                        verticalArrangement =
-                                            Arrangement.spacedBy(6.dp)
+                                CuteCard {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Text(
-                                            (if (task.daily) "📅 " else "") +
+                                        Column(Modifier.weight(1f)) {
+                                            Text(
                                                 task.name,
-                                            color = Ink,
-                                            style = MaterialTheme.typography.titleMedium
-                                        )
-                                        Text("🪙 ${task.coins}", color = Ink)
-
-                                        when {
-                                            task.approved ->
-                                                Text(tr("approved"), color = Ink)
-
-                                            task.submitted && isParent ->
-                                                Button(
-                                                    onClick = {
-                                                        approveTask(task)
-                                                    }
-                                                ) {
-                                                    Text(tr("approveTask"))
-                                                }
-
-                                            task.submitted ->
-                                                Text(tr("waitingParent"), color = Ink)
-
-                                            !isParent ->
-                                                Button(
-                                                    onClick = {
-                                                        submitTask(task)
-                                                    }
-                                                ) {
-                                                    Text(tr("submit"))
-                                                }
-
-                                            else ->
-                                                Text(tr("waitingChild"), color = Ink)
+                                                color = Ink,
+                                                fontSize = 17.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Text(
+                                                "🪙 ${task.coins}   ·   ${
+                                                    if (task.daily) tr("dailyTag")
+                                                    else tr("onceTag")
+                                                }",
+                                                color = DeepSky,
+                                                fontSize = 13.sp
+                                            )
                                         }
+                                        Text("⭐", fontSize = 25.sp)
+                                    }
 
-                                        if (isParent) {
-                                            TextButton(
-                                                onClick = {
-                                                    deleteTask(task)
-                                                }
-                                            ) {
-                                                Text(tr("delete"))
-                                            }
+                                    when {
+                                        task.approved -> StatusText(
+                                            "✅ ${tr("approved")}",
+                                            SoftGreen
+                                        )
+                                        task.submitted && isParent -> CuteButton(
+                                            text = "💙 ${tr("approveTask")}",
+                                            onClick = { approveTask(task) }
+                                        )
+                                        task.submitted -> StatusText(
+                                            "⏳ ${tr("waitingParent")}",
+                                            SoftYellow
+                                        )
+                                        !isParent -> CuteButton(
+                                            text = "✨ ${tr("submit")}",
+                                            onClick = { submitTask(task) }
+                                        )
+                                        else -> StatusText(
+                                            "🌱 ${tr("waitingChild")}",
+                                            PaleBlue
+                                        )
+                                    }
+
+                                    if (isParent) {
+                                        TextButton(
+                                            onClick = { deleteTask(task) }
+                                        ) {
+                                            Text(
+                                                "🗑 ${tr("delete")}",
+                                                color = Color(0xFFCE718B)
+                                            )
                                         }
                                     }
                                 }
@@ -929,156 +1136,404 @@ private fun RewardsApp(isParent: Boolean) {
                         }
 
                         "gifts" -> {
+                            SectionTitle("🎁 ${tr("giftTitle")}")
+
                             if (isParent) {
-                                Text(
-                                    tr("newGift"),
-                                    color = Ink,
-                                    style = MaterialTheme.typography.titleLarge
-                                )
-                                OutlinedTextField(
-                                    value = giftName,
-                                    onValueChange = { giftName = it },
-                                    label = { Text(tr("giftName")) },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                OutlinedTextField(
-                                    value = giftPrice,
-                                    onValueChange = {
-                                        giftPrice = it.filter(Char::isDigit)
-                                    },
-                                    label = { Text(tr("giftPrice")) },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                Button(
-                                    onClick = { addGift() },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(tr("addGift"))
+                                CuteCard {
+                                    Text(
+                                        "➕ ${tr("newGift")}",
+                                        color = Ink,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 17.sp
+                                    )
+                                    OutlinedTextField(
+                                        value = giftName,
+                                        onValueChange = { giftName = it },
+                                        label = { Text(tr("giftName")) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(16.dp),
+                                        singleLine = true
+                                    )
+                                    OutlinedTextField(
+                                        value = giftPrice,
+                                        onValueChange = {
+                                            giftPrice = it.filter(Char::isDigit)
+                                        },
+                                        label = { Text(tr("giftPrice")) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(16.dp),
+                                        singleLine = true
+                                    )
+                                    CuteButton(
+                                        text = "＋ ${tr("addGift")}",
+                                        onClick = { addGift() }
+                                    )
                                 }
                             }
 
+                            if (gifts.isEmpty()) {
+                                EmptyCard("🎀", tr("noGifts"))
+                            }
+
                             gifts.forEach { gift ->
-                                Card(
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = Color.White
-                                    )
-                                ) {
-                                    Column(
-                                        Modifier.padding(12.dp),
-                                        verticalArrangement =
-                                            Arrangement.spacedBy(6.dp)
+                                CuteCard {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("🎁", fontSize = 32.sp)
+                                        Spacer(Modifier.width(12.dp))
+                                        Column(Modifier.weight(1f)) {
+                                            Text(
+                                                gift.name,
+                                                color = Ink,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 17.sp
+                                            )
+                                            Text(
+                                                "🪙 ${gift.price}",
+                                                color = DeepSky
+                                            )
+                                        }
+                                    }
+
+                                    when {
+                                        gift.approved -> StatusText(
+                                            "🎉 ${tr("redeemed")}",
+                                            SoftGreen
+                                        )
+                                        gift.requested && isParent -> CuteButton(
+                                            text = "💙 ${tr("approveGift")}",
+                                            onClick = { approveGift(gift) }
+                                        )
+                                        gift.requested -> StatusText(
+                                            "⏳ ${tr("waitingParent")}",
+                                            SoftYellow
+                                        )
+                                        !isParent -> CuteButton(
+                                            text = "🎀 ${tr("requestGift")}",
+                                            enabled = coins >= gift.price,
+                                            onClick = { requestGift(gift) }
+                                        )
+                                        else -> StatusText(
+                                            "🌱 ${tr("waitingChild")}",
+                                            PaleBlue
+                                        )
+                                    }
+
+                                    if (!isParent && !gift.approved &&
+                                        !gift.requested && coins < gift.price
                                     ) {
                                         Text(
-                                            "🎁 ${gift.name}",
-                                            color = Ink,
-                                            style = MaterialTheme.typography.titleMedium
+                                            tr("insufficient"),
+                                            color = Color(0xFFCE718B),
+                                            fontSize = 12.sp
                                         )
-                                        Text("🪙 ${gift.price}", color = Ink)
-
-                                        when {
-                                            gift.approved ->
-                                                Text(tr("redeemed"), color = Ink)
-
-                                            gift.requested && isParent ->
-                                                Button(
-                                                    onClick = {
-                                                        approveGift(gift)
-                                                    }
-                                                ) {
-                                                    Text(tr("approveGift"))
-                                                }
-
-                                            gift.requested ->
-                                                Text(tr("waitingParent"), color = Ink)
-
-                                            !isParent ->
-                                                Button(
-                                                    onClick = {
-                                                        requestGift(gift)
-                                                    }
-                                                ) {
-                                                    Text(tr("requestGift"))
-                                                }
-
-                                            else ->
-                                                Text(tr("waitingChild"), color = Ink)
-                                        }
                                     }
                                 }
                             }
                         }
 
                         "wallet" -> {
-                            Text(
-                                "${tr("balance")}：$coins",
-                                color = Ink,
-                                style = MaterialTheme.typography.headlineSmall
-                            )
+                            SectionTitle("🪙 ${tr("walletTitle")}")
+
+                            CuteCard {
+                                Text(
+                                    tr("balance"),
+                                    color = Ink,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    "🪙 $coins",
+                                    color = DeepSky,
+                                    fontSize = 34.sp,
+                                    fontWeight = FontWeight.ExtraBold
+                                )
+                            }
 
                             if (isParent) {
-                                Text(
-                                    tr("exam"),
-                                    color = Ink,
-                                    style = MaterialTheme.typography.titleLarge
-                                )
-                                Text(
-                                    tr("examRule"),
-                                    color = Ink
-                                )
-                                OutlinedTextField(
-                                    value = examScore,
-                                    onValueChange = {
-                                        examScore = it.filter(Char::isDigit)
-                                    },
-                                    label = { Text(tr("score")) },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                Button(
-                                    onClick = { addExamReward() },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(tr("giveReward"))
+                                CuteCard {
+                                    Text(
+                                        "🏆 ${tr("exam")}",
+                                        color = Ink,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 18.sp
+                                    )
+                                    Text(
+                                        tr("examRule"),
+                                        color = Ink,
+                                        lineHeight = 22.sp
+                                    )
+                                    OutlinedTextField(
+                                        value = examScore,
+                                        onValueChange = {
+                                            examScore = it.filter(Char::isDigit)
+                                        },
+                                        label = { Text(tr("score")) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(16.dp),
+                                        singleLine = true
+                                    )
+                                    CuteButton(
+                                        text = "⭐ ${tr("giveReward")}",
+                                        onClick = { addExamReward() }
+                                    )
                                 }
                             }
 
-                            Text(
-                                tr("history"),
-                                color = Ink,
-                                style = MaterialTheme.typography.titleLarge
-                            )
+                            SectionTitle("📖 ${tr("history")}")
 
                             if (records.isEmpty()) {
-                                Text(tr("noRecords"), color = Ink)
+                                EmptyCard("📒", tr("noRecords"))
                             }
 
                             records.forEach { record ->
-                                ListItem(
-                                    headlineContent = {
-                                        Text(
-                                            record.description,
-                                            color = Ink
-                                        )
-                                    },
-                                    supportingContent = {
-                                        Text(record.date, color = Ink)
-                                    },
-                                    trailingContent = {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(18.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = CloudWhite
+                                    )
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(14.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(Modifier.weight(1f)) {
+                                            Text(
+                                                record.description,
+                                                color = Ink,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Text(
+                                                record.date,
+                                                color = Color.Gray,
+                                                fontSize = 11.sp
+                                            )
+                                        }
                                         Text(
                                             if (record.amount >= 0)
                                                 "+${record.amount}"
                                             else record.amount.toString(),
-                                            color = Ink
+                                            color = if (record.amount >= 0)
+                                                Color(0xFF4AAB78)
+                                            else Color(0xFFCE718B),
+                                            fontSize = 18.sp,
+                                            fontWeight = FontWeight.Bold
                                         )
                                     }
-                                )
-                                HorizontalDivider()
+                                }
                             }
                         }
                     }
+
+                    // 本机解除连接，不会删除云端家庭资料
+                    TextButton(
+                        onClick = { showDisconnectDialog = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            "🔗 ${tr("logoutFamily")}",
+                            color = Color(0xFFCE718B)
+                        )
+                    }
                 }
 
-                Text(message, color = Ink)
+                // 操作结果提示
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = SoftPink
+                    )
+                ) {
+                    Text(
+                        message,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(13.dp),
+                        color = Ink,
+                        textAlign = TextAlign.Center,
+                        fontSize = 12.sp
+                    )
+                }
+
+                Text(
+                    "☁️ Made with love · My Little Rewards ⭐",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    color = Color(0xFF79AFC9),
+                    fontSize = 11.sp,
+                    textAlign = TextAlign.Center
+                )
             }
         }
+    }
+
+    if (showDisconnectDialog) {
+        AlertDialog(
+            onDismissRequest = { showDisconnectDialog = false },
+            title = { Text(tr("logoutFamily")) },
+            text = { Text(tr("confirmReset")) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        disconnectDevice()
+                        showDisconnectDialog = false
+                    }
+                ) {
+                    Text(tr("confirm"))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDisconnectDialog = false }
+                ) {
+                    Text(tr("cancel"))
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun CuteCard(content: @Composable ColumnScope.() -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = CloudWhite
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            content = content
+        )
+    }
+}
+
+@Composable
+private fun CuteButton(
+    text: String,
+    enabled: Boolean = true,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp),
+        shape = RoundedCornerShape(18.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = DeepSky,
+            disabledContainerColor = Color(0xFFB9DCEB)
+        )
+    ) {
+        Text(
+            text,
+            color = Color.White,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+private fun CuteTab(
+    modifier: Modifier = Modifier,
+    selected: Boolean,
+    text: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = modifier.height(66.dp),
+        onClick = onClick,
+        shape = RoundedCornerShape(18.dp),
+        color = if (selected) Sky else CloudWhite,
+        shadowElevation = if (selected) 3.dp else 0.dp
+    ) {
+        Box(
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text,
+                textAlign = TextAlign.Center,
+                color = Ink,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                lineHeight = 18.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun SectionTitle(text: String) {
+    Text(
+        text,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp),
+        color = Ink,
+        fontSize = 20.sp,
+        fontWeight = FontWeight.ExtraBold
+    )
+}
+
+@Composable
+private fun EmptyCard(
+    emoji: String,
+    text: String
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Cream
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(emoji, fontSize = 30.sp)
+            Text(
+                text,
+                color = Ink,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatusText(
+    text: String,
+    color: Color
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        color = color
+    ) {
+        Text(
+            text,
+            modifier = Modifier.padding(11.dp),
+            color = Ink,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
