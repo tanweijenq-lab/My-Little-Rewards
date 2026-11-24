@@ -11,11 +11,27 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.mylittlerewards.parent"
+        applicationId = "com.mylittlerewards"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = "1.0"
+        versionName = "2.0"
+    }
+
+    flavorDimensions += "role"
+
+    productFlavors {
+        create("parent") {
+            dimension = "role"
+            applicationId = "com.mylittlerewards.parent"
+            resValue("string", "app_name", "My Little Rewards - Parent")
+        }
+
+        create("child") {
+            dimension = "role"
+            applicationId = "com.mylittlerewards.child"
+            resValue("string", "app_name", "My Little Rewards - Child")
+        }
     }
 
     buildFeatures {
@@ -33,6 +49,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            isMinifyEnabled = false
+        }
+
         release {
             isMinifyEnabled = false
         }
@@ -44,15 +64,17 @@ dependencies {
 
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.activity:activity-compose:1.9.3")
+
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
 
-    // Firebase
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
