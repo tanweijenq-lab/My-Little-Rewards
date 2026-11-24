@@ -18,12 +18,11 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
-      - name: Set up Java 17
+            - name: Set up Java 17
         run: |
-          echo "$JAVA_HOME_17_X64" >> "$GITHUB_ENV"
+          echo "JAVA_HOME=$JAVA_HOME_17_X64" >> "$GITHUB_ENV"
           echo "$JAVA_HOME_17_X64/bin" >> "$GITHUB_PATH"
           java -version
-
       - name: Check Gradle
         run: gradle --version
 
