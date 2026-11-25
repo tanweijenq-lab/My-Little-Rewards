@@ -3,9 +3,10 @@
 
     <application
         android:allowBackup="true"
-        android:label="My Little Rewards"
+        android:label="@string/app_name"
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
-        android:supportsRtl="true">
+        android:supportsRtl="true"
+        android:icon="@mipmap/ic_launcher">
 
         <activity
             android:name=".MainActivity"
