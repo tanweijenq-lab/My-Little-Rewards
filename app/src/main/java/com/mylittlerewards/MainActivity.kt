@@ -423,11 +423,13 @@ private fun RewardsApp(isParent: Boolean) {
 
                         // 主页使用你上传的第一张玉桂狗图片
                         Image(
-                            painter = painterResource(id = R.drawable.cinnamoroll_home),
-                            contentDescription = "Cinnamoroll home illustration",
-                            modifier = Modifier.fillMaxWidth().height(210.dp),
-                            contentScale = ContentScale.Crop
-                        )
+    painter = painterResource(id = R.drawable.cinnamoroll),
+    contentDescription = "Cinnamoroll",
+    modifier = Modifier
+        .fillMaxWidth()
+        .height(220.dp),
+    contentScale = ContentScale.Fit
+)
 
                         Text(
                             "MY LITTLE REWARDS",
