@@ -408,12 +408,34 @@ private fun CuteButton(text: String, enabled: Boolean = true, onClick: () -> Uni
     }
 }
 
+
 @Composable
-private fun CuteTab(modifier: Modifier = Modifier, selected: Boolean, text: String, onClick: () -> Unit) {
-    Surface(modifier.height(66.dp), onClick = onClick, shape = RoundedCornerShape(18.dp), color = if (selected) Sky else CloudWhite, shadowElevation = if (selected) 3.dp else 0.dp) {
-        Box(contentAlignment = Alignment.Center) { Text(text, textAlign = TextAlign.Center, color = Ink, fontSize = 12.sp, fontWeight = FontWeight.Bold, lineHeight = 18.sp) }
+private fun CuteTab(
+    modifier: Modifier = Modifier,
+    selected: Boolean,
+    text: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.height(66.dp),
+        shape = RoundedCornerShape(18.dp),
+        color = if (selected) Sky else CloudWhite,
+        shadowElevation = if (selected) 3.dp else 0.dp
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text,
+                textAlign = TextAlign.Center,
+                color = Ink,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                lineHeight = 18.sp
+            )
+        }
     }
 }
+
 
 @Composable
 private fun SectionTitle(text: String) {
