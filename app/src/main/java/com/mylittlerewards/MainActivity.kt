@@ -247,7 +247,7 @@ private fun RewardsApp(isParent: Boolean) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                             TextButton(onClick = { showSettingsDialog = true }) { Text("⚙️ ${tr("settings")}", color = Color.White) }
                         }
-                        CutePuppy()
+                        Text("☁️  ⭐  ☁️", fontSize = 38.sp)
                         Text("MY LITTLE REWARDS", fontSize = 21.sp, fontWeight = FontWeight.ExtraBold, color = Color.White, letterSpacing = 1.sp)
                         Text(if (isParent) tr("parent") else tr("child"), fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Ink)
                         Text(tr("hello"), fontSize = 13.sp, color = Ink)
@@ -264,21 +264,14 @@ private fun RewardsApp(isParent: Boolean) {
                 } else if (familyCode.isBlank()) {
                     CuteCard {
                         Text("☁️ ${tr("family")}", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Ink)
-                        if (isParent) {
-                            Text("创建家庭后，把配对码交给孩子的手机。", color = Ink)
-                            CuteButton(if (loading) tr("processing") else "✨ ${tr("create")}", !loading) { createFamily() }
-                        } else {
-                            Text(tr("enterCode"), color = Ink)
-                            OutlinedTextField(inputCode, { inputCode = it.uppercase(Locale.ROOT) }, label = { Text(tr("family")) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), singleLine = true)
-                            CuteButton(if (loading) tr("processing") else "💙 ${tr("join")}", !loading && inputCode.isNotBlank()) { joinFamily() }
-                        }
+                        Text(
+                            if (isParent) "请进入设置创建家庭并取得配对码。"
+                            else "请进入设置输入家长提供的配对码。",
+                            color = Ink
+                        )
+                        CuteButton("⚙️ ${tr("settings")}") { showSettingsDialog = true }
                     }
                 } else {
-                    CuteCard {
-                        Text("🏡 ${tr("family")}", color = Ink, fontWeight = FontWeight.Bold)
-                        Text(familyCode, color = DeepSky, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 3.sp)
-                        if (isParent) Text(tr("codeTip"), color = Ink, fontSize = 12.sp)
-                    }
                     Text(if (isParent) tr("parentTip") else tr("childTip"), color = Ink, fontSize = 13.sp)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                         CuteTab(Modifier.weight(1f), selectedTab == "tasks", "📋\n${tr("tasks")}") { selectedTab = "tasks" }
@@ -348,7 +341,6 @@ private fun RewardsApp(isParent: Boolean) {
                             } }
                         }
                     }
-                    TextButton(onClick = { showDisconnectDialog = true }, modifier = Modifier.fillMaxWidth()) { Text("🔗 ${tr("logoutFamily")}", color = DeletePink) }
                 }
                 Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = SoftPink)) { Text(message, Modifier.fillMaxWidth().padding(13.dp), color = Ink, textAlign = TextAlign.Center, fontSize = 12.sp) }
                 Text("☁️ Made with love · My Little Rewards ⭐", Modifier.fillMaxWidth().padding(bottom = 12.dp), color = Color(0xFF79AFC9), fontSize = 11.sp, textAlign = TextAlign.Center)
@@ -359,13 +351,80 @@ private fun RewardsApp(isParent: Boolean) {
     if (showSettingsDialog) AlertDialog(
         onDismissRequest = { showSettingsDialog = false },
         title = { Text("⚙️ ${tr("settings")}") },
-        text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("🌐 ${tr("language")}", color = Ink, fontWeight = FontWeight.Bold)
-            listOf("zh" to "中文", "ms" to "Bahasa Melayu", "en" to "English", "vi" to "Tiếng Việt").forEach { opt ->
-                FilterChip(selected = language == opt.first, onClick = { language = opt.first; prefs.edit().putString("language", language).apply() }, label = { Text(opt.second) })
+        text = {
+            Column(
+                Modifier
+                    .heightIn(max = 440.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text("🌐 ${tr("language")}", color = Ink, fontWeight = FontWeight.Bold)
+                listOf(
+                    "zh" to "中文",
+                    "ms" to "Bahasa Melayu",
+                    "en" to "English",
+                    "vi" to "Tiếng Việt"
+                ).forEach { opt ->
+                    FilterChip(
+                        selected = language == opt.first,
+                        onClick = {
+                            language = opt.first
+                            prefs.edit().putString("language", language).apply()
+                        },
+                        label = { Text(opt.second) }
+                    )
+                }
+
+                Divider(color = PaleBlue)
+                Text("🏡 家庭配对", color = Ink, fontWeight = FontWeight.Bold)
+
+                if (familyCode.isNotBlank()) {
+                    Text("家庭配对码", color = Ink, fontSize = 13.sp)
+                    Text(
+                        familyCode,
+                        color = DeepSky,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 3.sp
+                    )
+                    if (isParent) Text(tr("codeTip"), color = Ink, fontSize = 12.sp)
+                    TextButton(
+                        onClick = {
+                            showSettingsDialog = false
+                            showDisconnectDialog = true
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("🔗 ${tr("logoutFamily")}", color = DeletePink)
+                    }
+                } else if (isParent) {
+                    Text("创建家庭后，把配对码交给孩子的手机。", color = Ink)
+                    CuteButton(
+                        if (loading) tr("processing") else "✨ ${tr("create")}",
+                        !loading
+                    ) { createFamily() }
+                } else {
+                    Text(tr("enterCode"), color = Ink)
+                    OutlinedTextField(
+                        inputCode,
+                        { inputCode = it.uppercase(Locale.ROOT) },
+                        label = { Text(tr("family")) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true
+                    )
+                    CuteButton(
+                        if (loading) tr("processing") else "💙 ${tr("join")}",
+                        !loading && inputCode.isNotBlank()
+                    ) { joinFamily() }
+                }
             }
-        } },
-        confirmButton = { TextButton(onClick = { showSettingsDialog = false }) { Text(tr("done")) } }
+        },
+        confirmButton = {
+            TextButton(onClick = { showSettingsDialog = false }) {
+                Text(tr("done"))
+            }
+        }
     )
     if (recordToDelete != null) AlertDialog(
         onDismissRequest = { recordToDelete = null },
