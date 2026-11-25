@@ -24,13 +24,13 @@ android {
         create("parent") {
             dimension = "role"
             applicationId = "com.mylittlerewards.parent"
-            resValue("string", "app_name", "My Little Rewards - Parent")
+            resValue("string", "app_name", "My Little Rewards Parent")
         }
 
         create("child") {
             dimension = "role"
             applicationId = "com.mylittlerewards.child"
-            resValue("string", "app_name", "My Little Rewards - Child")
+            resValue("string", "app_name", "My Little Rewards Kids")
         }
     }
 
