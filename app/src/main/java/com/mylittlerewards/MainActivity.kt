@@ -5,6 +5,11 @@ import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -242,7 +247,7 @@ private fun RewardsApp(isParent: Boolean) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                             TextButton(onClick = { showSettingsDialog = true }) { Text("⚙️ ${tr("settings")}", color = Color.White) }
                         }
-                        Text("☁️ ૮₍˶ᵔ ᵕ ᵔ˶₎ა ☁️", fontSize = 27.sp, color = Color.White)
+                        CutePuppy()
                         Text("MY LITTLE REWARDS", fontSize = 21.sp, fontWeight = FontWeight.ExtraBold, color = Color.White, letterSpacing = 1.sp)
                         Text(if (isParent) tr("parent") else tr("child"), fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Ink)
                         Text(tr("hello"), fontSize = 13.sp, color = Ink)
@@ -408,34 +413,12 @@ private fun CuteButton(text: String, enabled: Boolean = true, onClick: () -> Uni
     }
 }
 
-
 @Composable
-private fun CuteTab(
-    modifier: Modifier = Modifier,
-    selected: Boolean,
-    text: String,
-    onClick: () -> Unit
-) {
-    Surface(
-        onClick = onClick,
-        modifier = modifier.height(66.dp),
-        shape = RoundedCornerShape(18.dp),
-        color = if (selected) Sky else CloudWhite,
-        shadowElevation = if (selected) 3.dp else 0.dp
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Text(
-                text,
-                textAlign = TextAlign.Center,
-                color = Ink,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                lineHeight = 18.sp
-            )
-        }
+private fun CuteTab(modifier: Modifier = Modifier, selected: Boolean, text: String, onClick: () -> Unit) {
+    Surface(onClick = onClick, modifier = modifier.height(66.dp), shape = RoundedCornerShape(18.dp), color = if (selected) Sky else CloudWhite, shadowElevation = if (selected) 3.dp else 0.dp) {
+        Box(contentAlignment = Alignment.Center) { Text(text, textAlign = TextAlign.Center, color = Ink, fontSize = 12.sp, fontWeight = FontWeight.Bold, lineHeight = 18.sp) }
     }
 }
-
 
 @Composable
 private fun SectionTitle(text: String) {
@@ -457,3 +440,56 @@ private fun StatusText(text: String, color: Color) {
         Text(text, Modifier.padding(11.dp), color = Ink, fontSize = 13.sp, fontWeight = FontWeight.Medium)
     }
 }
+
+@Composable
+private fun CutePuppy() {
+    Canvas(modifier = Modifier.size(width = 190.dp, height = 155.dp)) {
+        val white = Color.White
+        val outline = Color(0xFF83C9EE)
+        val pink = Color(0xFFFFB7CB)
+        val blue = Color(0xFF527AAB)
+        val sw = size.width
+        val sh = size.height
+
+        // Long floppy ears
+        val leftEar = Path().apply {
+            moveTo(sw * 0.38f, sh * 0.32f)
+            cubicTo(sw * 0.18f, sh * 0.16f, sw * 0.04f, sh * 0.36f, sw * 0.12f, sh * 0.70f)
+            cubicTo(sw * 0.17f, sh * 0.91f, sw * 0.34f, sh * 0.76f, sw * 0.42f, sh * 0.52f)
+            close()
+        }
+        val rightEar = Path().apply {
+            moveTo(sw * 0.62f, sh * 0.32f)
+            cubicTo(sw * 0.82f, sh * 0.16f, sw * 0.96f, sh * 0.36f, sw * 0.88f, sh * 0.70f)
+            cubicTo(sw * 0.83f, sh * 0.91f, sw * 0.66f, sh * 0.76f, sw * 0.58f, sh * 0.52f)
+            close()
+        }
+        drawPath(leftEar, white)
+        drawPath(leftEar, outline, style = Stroke(2.dp.toPx()))
+        drawPath(rightEar, white)
+        drawPath(rightEar, outline, style = Stroke(2.dp.toPx()))
+
+        // Sitting body and tiny feet
+        drawOval(color = white, topLeft = Offset(sw * 0.35f, sh * 0.56f), size = Size(sw * 0.30f, sh * 0.37f))
+        drawOval(color = outline, topLeft = Offset(sw * 0.35f, sh * 0.56f), size = Size(sw * 0.30f, sh * 0.37f), style = Stroke(2.dp.toPx()))
+        drawOval(color = white, topLeft = Offset(sw * 0.27f, sh * 0.84f), size = Size(sw * 0.25f, sh * 0.13f))
+        drawOval(color = white, topLeft = Offset(sw * 0.48f, sh * 0.84f), size = Size(sw * 0.25f, sh * 0.13f))
+
+        // Head
+        drawCircle(color = outline, radius = sw * 0.205f, center = Offset(sw * 0.50f, sh * 0.36f))
+        drawCircle(color = white, radius = sw * 0.195f, center = Offset(sw * 0.50f, sh * 0.36f))
+
+        // Eyes and blush
+        drawCircle(color = blue, radius = 2.8.dp.toPx(), center = Offset(sw * 0.435f, sh * 0.36f))
+        drawCircle(color = blue, radius = 2.8.dp.toPx(), center = Offset(sw * 0.565f, sh * 0.36f))
+        drawCircle(color = pink, radius = 4.dp.toPx(), center = Offset(sw * 0.385f, sh * 0.43f))
+        drawCircle(color = pink, radius = 4.dp.toPx(), center = Offset(sw * 0.615f, sh * 0.43f))
+
+        val mouth = Path().apply {
+            moveTo(sw * 0.48f, sh * 0.42f)
+            quadraticTo(sw * 0.50f, sh * 0.455f, sw * 0.52f, sh * 0.42f)
+        }
+        drawPath(path = mouth, color = blue, style = Stroke(width = 1.5.dp.toPx()))
+    }
+}
+
