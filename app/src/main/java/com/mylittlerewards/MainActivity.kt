@@ -1011,7 +1011,8 @@ private fun RewardsApp(isParent: Boolean) {
                 Text(tr("done"))
             }
         }
-    )    if (recordToDelete != null) AlertDialog(
+    )    
+    if (recordToDelete != null) AlertDialog(
         onDismissRequest = { recordToDelete = null },
         title = { Text(tr("deleteRecord")) },
         text = { Text(tr("confirmDeleteRecord")) },
