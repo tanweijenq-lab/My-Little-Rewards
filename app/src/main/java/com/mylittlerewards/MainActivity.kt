@@ -211,7 +211,7 @@ private fun RewardsApp(isParent: Boolean) {
                 "createdAt" to FieldValue.serverTimestamp(),
                 "expiresAt" to Date(System.currentTimeMillis() + 15L * 60L * 1000L)
             )
-            db.collection("parentInvites").document(invite).create(inviteData)
+            db.collection("parentInvites").document(invite).set(inviteData)
                 .addOnSuccessListener {
                     loading = false
                     parentInviteCode = invite
