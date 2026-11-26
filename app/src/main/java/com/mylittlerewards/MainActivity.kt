@@ -256,7 +256,13 @@ private fun RewardsApp(isParent: Boolean) {
             if (actualParents.size != 1) throw Exception("这个家庭已经有两位家长了。")
             if (uid == ownerUid || uid in actualParents) throw Exception("你已经是这个家庭的家长。")
             val newParents = actualParents + uid
-            tx.update(familyRef, "parentUids", newParents)
+            tx.update(
+    familyRef,
+    mapOf(
+        "parentUids" to newParents,
+        "lastInviteCode" to code
+    )
+)
             tx.update(inviteRef, "claimedBy", uid)
             familyId
         }.addOnSuccessListener { familyId ->
