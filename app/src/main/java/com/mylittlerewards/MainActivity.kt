@@ -75,6 +75,8 @@ private fun RewardsApp(isParent: Boolean) {
     var uid by remember { mutableStateOf("") }
     var familyCode by remember { mutableStateOf("") }
     var inputCode by remember { mutableStateOf("") }
+    var inputParentInviteCode by remember { mutableStateOf("") }
+    var parentInviteCode by remember { mutableStateOf("") }
     var coins by remember { mutableIntStateOf(0) }
     var tasks by remember { mutableStateOf(emptyList<TaskItem>()) }
     var gifts by remember { mutableStateOf(emptyList<GiftItem>()) }
@@ -146,7 +148,7 @@ private fun RewardsApp(isParent: Boolean) {
         loading = true
         val chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; val random = SecureRandom()
         val code = (1..10).map { chars[random.nextInt(chars.length)] }.joinToString("")
-        val data = mapOf<String, Any>("ownerUid" to uid, "childUid" to "", "coins" to 0, "createdAt" to FieldValue.serverTimestamp())
+        val data = mapOf<String, Any>("ownerUid" to uid, "parentUids" to listOf(uid), "childUid" to "", "coins" to 0, "createdAt" to FieldValue.serverTimestamp())
         db.collection("families").document(code).set(data).addOnSuccessListener { loading = false; connectFamily(code); message = "家庭创建成功！配对码：$code" }.addOnFailureListener { loading = false; message = "创建失败：${it.message}" }
     }
 
@@ -166,6 +168,103 @@ private fun RewardsApp(isParent: Boolean) {
             loading = false
             connectFamily(code)
             message = "成功加入家庭！"
+        }.addOnFailureListener {
+            loading = false
+            message = "加入失败：${it.message}"
+        }
+    }
+
+    // 为现有家庭生成第二位家长专用的一次性邀请码，有效期 15 分钟。
+    fun generateParentInvite() {
+        if (uid.isBlank() || familyCode.isBlank()) return
+        loading = true
+        val family = db.collection("families").document(familyCode)
+        family.get().addOnSuccessListener { snap ->
+            if (!snap.exists()) {
+                loading = false
+                message = "找不到家庭资料。"
+                return@addOnSuccessListener
+            }
+            val ownerUid = snap.getString("ownerUid") ?: ""
+            val parentUids = (snap.get("parentUids") as? List<*>)?.filterIsInstance<String>()
+                ?: listOf(ownerUid).filter { it.isNotBlank() }
+            if (uid !in parentUids && uid != ownerUid) {
+                loading = false
+                message = "只有家庭家长可以生成邀请码。"
+                return@addOnSuccessListener
+            }
+            if (parentUids.size >= 2) {
+                loading = false
+                parentInviteCode = ""
+                message = "这个家庭已经有两位家长了。"
+                return@addOnSuccessListener
+            }
+            val chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+            val random = SecureRandom()
+            val invite = (1..12).map { chars[random.nextInt(chars.length)] }.joinToString("")
+            val inviteData = mapOf<String, Any>(
+                "familyId" to familyCode,
+                "ownerUid" to ownerUid,
+                "createdBy" to uid,
+                "parentUids" to parentUids,
+                "claimedBy" to "",
+                "createdAt" to FieldValue.serverTimestamp(),
+                "expiresAt" to Date(System.currentTimeMillis() + 15L * 60L * 1000L)
+            )
+            db.collection("parentInvites").document(invite).create(inviteData)
+                .addOnSuccessListener {
+                    loading = false
+                    parentInviteCode = invite
+                    message = "第二家长邀请码已生成，有效期 15 分钟，只能使用一次。"
+                }.addOnFailureListener {
+                    loading = false
+                    message = "邀请码生成失败：${it.message}"
+                }
+        }.addOnFailureListener {
+            loading = false
+            message = "读取家庭资料失败：${it.message}"
+        }
+    }
+
+    // 第二位家长使用独立邀请码加入；不会改变孩子原有的家庭配对。
+    fun joinAsSecondParent() {
+        if (uid.isBlank() || inputParentInviteCode.isBlank()) return
+        loading = true
+        val code = inputParentInviteCode.trim().uppercase(Locale.ROOT)
+        val inviteRef = db.collection("parentInvites").document(code)
+        db.runTransaction { tx ->
+            val inviteSnap = tx.get(inviteRef)
+            if (!inviteSnap.exists()) throw Exception("邀请码不存在或已失效。")
+            val familyId = inviteSnap.getString("familyId") ?: throw Exception("邀请码资料不完整。")
+            val familyRef = db.collection("families").document(familyId)
+            val familySnap = tx.get(familyRef)
+            if (!familySnap.exists()) throw Exception("找不到对应的家庭。")
+            val claimedBy = inviteSnap.getString("claimedBy") ?: ""
+            if (claimedBy.isNotBlank()) throw Exception("这个邀请码已经使用过。")
+            val expiresAt = inviteSnap.getDate("expiresAt")
+            if (expiresAt == null || expiresAt.time <= System.currentTimeMillis()) {
+                throw Exception("邀请码已过期，请第一位家长重新生成。")
+            }
+            val ownerUid = familySnap.getString("ownerUid") ?: ""
+            val actualParents = (familySnap.get("parentUids") as? List<*>)?.filterIsInstance<String>()
+                ?: listOf(ownerUid).filter { it.isNotBlank() }
+            val inviteParents = (inviteSnap.get("parentUids") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+            if (ownerUid.isBlank() || inviteSnap.getString("ownerUid") != ownerUid) {
+                throw Exception("邀请码与家庭资料不匹配。")
+            }
+            if (inviteParents != actualParents) throw Exception("家庭成员资料已变更，请重新生成邀请码。")
+            if (actualParents.size != 1) throw Exception("这个家庭已经有两位家长了。")
+            if (uid == ownerUid || uid in actualParents) throw Exception("你已经是这个家庭的家长。")
+            val newParents = actualParents + uid
+            tx.update(familyRef, "parentUids", newParents)
+            tx.update(inviteRef, "claimedBy", uid)
+            familyId
+        }.addOnSuccessListener { familyId ->
+            loading = false
+            inputParentInviteCode = ""
+            parentInviteCode = ""
+            connectFamily(familyId)
+            message = "成功加入家庭！现在两位家长拥有相同管理权限。"
         }.addOnFailureListener {
             loading = false
             message = "加入失败：${it.message}"
@@ -384,9 +483,12 @@ private fun RewardsApp(isParent: Boolean) {
         gifts = emptyList()
         records = emptyList()
         inputCode = ""
+        inputParentInviteCode = ""
+        parentInviteCode = ""
         message = "本机已解除家庭连接。"
     }
-        MaterialTheme(
+
+    MaterialTheme(
         colorScheme = lightColorScheme(
             primary = DeepSky,
             onPrimary = Color.White,
@@ -423,15 +525,11 @@ private fun RewardsApp(isParent: Boolean) {
 
                         // 主页使用你上传的第一张玉桂狗图片
                         Image(
-    painter = painterResource(
-        id = R.drawable.cinnamoroll_home
-    ),
-    contentDescription = "Cinnamoroll",
-    modifier = Modifier
-        .fillMaxWidth()
-        .height(220.dp),
-    contentScale = ContentScale.Fit
-)
+                            painter = painterResource(id = R.drawable.cinnamoroll_home),
+                            contentDescription = "Cinnamoroll",
+                            modifier = Modifier.fillMaxWidth().height(220.dp),
+                            contentScale = ContentScale.Fit
+                        )
 
                         Text(
                             "MY LITTLE REWARDS",
@@ -497,23 +595,15 @@ private fun RewardsApp(isParent: Boolean) {
                         Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(7.dp)
                     ) {
-                        CuteTab(
-                            Modifier.weight(1f),
-                            selectedTab == "tasks",
-                            "📋\n${tr("tasks")}"
-                        ) { selectedTab = "tasks" }
-
-                        CuteTab(
-                            Modifier.weight(1f),
-                            selectedTab == "gifts",
-                            "🎁\n${tr("gifts")}"
-                        ) { selectedTab = "gifts" }
-
-                        CuteTab(
-                            Modifier.weight(1f),
-                            selectedTab == "wallet",
-                            "🪙\n${tr("wallet")}"
-                        ) { selectedTab = "wallet" }
+                        CuteTab(Modifier.weight(1f), selectedTab == "tasks", "📋\n${tr("tasks")}") {
+                            selectedTab = "tasks"
+                        }
+                        CuteTab(Modifier.weight(1f), selectedTab == "gifts", "🎁\n${tr("gifts")}") {
+                            selectedTab = "gifts"
+                        }
+                        CuteTab(Modifier.weight(1f), selectedTab == "wallet", "🪙\n${tr("wallet")}") {
+                            selectedTab = "wallet"
+                        }
                     }
 
                     when (selectedTab) {
@@ -577,24 +667,15 @@ private fun RewardsApp(isParent: Boolean) {
                                     }
 
                                     when {
-                                        task.approved ->
-                                            StatusText("✅ ${tr("approved")}", SoftGreen)
-
-                                        task.submitted && isParent ->
-                                            CuteButton("💙 ${tr("approveTask")}") {
-                                                approveTask(task)
-                                            }
-
-                                        task.submitted ->
-                                            StatusText("⏳ ${tr("waitingParent")}", SoftYellow)
-
-                                        !isParent ->
-                                            CuteButton("✨ ${tr("submit")}") {
-                                                submitTask(task)
-                                            }
-
-                                        else ->
-                                            StatusText("🌱 ${tr("waitingChild")}", PaleBlue)
+                                        task.approved -> StatusText("✅ ${tr("approved")}", SoftGreen)
+                                        task.submitted && isParent -> CuteButton("💙 ${tr("approveTask")}") {
+                                            approveTask(task)
+                                        }
+                                        task.submitted -> StatusText("⏳ ${tr("waitingParent")}", SoftYellow)
+                                        !isParent -> CuteButton("✨ ${tr("submit")}") {
+                                            submitTask(task)
+                                        }
+                                        else -> StatusText("🌱 ${tr("waitingChild")}", PaleBlue)
                                     }
 
                                     if (isParent) {
@@ -605,7 +686,6 @@ private fun RewardsApp(isParent: Boolean) {
                                 }
                             }
                         }
-
                         "gifts" -> {
                             SectionTitle(tr("giftTitle"))
 
@@ -657,24 +737,15 @@ private fun RewardsApp(isParent: Boolean) {
                                     }
 
                                     when {
-                                        gift.approved ->
-                                            StatusText("🎉 ${tr("redeemed")}", SoftGreen)
-
-                                        gift.requested && isParent ->
-                                            CuteButton("💙 ${tr("approveGift")}") {
-                                                approveGift(gift)
-                                            }
-
-                                        gift.requested ->
-                                            StatusText("⏳ ${tr("waitingParent")}", SoftYellow)
-
-                                        !isParent ->
-                                            CuteButton("🎀 ${tr("requestGift")}", coins >= gift.price) {
-                                                requestGift(gift)
-                                            }
-
-                                        else ->
-                                            StatusText("🌱 ${tr("waitingChild")}", PaleBlue)
+                                        gift.approved -> StatusText("🎉 ${tr("redeemed")}", SoftGreen)
+                                        gift.requested && isParent -> CuteButton("💙 ${tr("approveGift")}") {
+                                            approveGift(gift)
+                                        }
+                                        gift.requested -> StatusText("⏳ ${tr("waitingParent")}", SoftYellow)
+                                        !isParent -> CuteButton("🎀 ${tr("requestGift")}", coins >= gift.price) {
+                                            requestGift(gift)
+                                        }
+                                        else -> StatusText("🌱 ${tr("waitingChild")}", PaleBlue)
                                     }
 
                                     if (!isParent && !gift.approved && !gift.requested && coins < gift.price) {
@@ -689,7 +760,8 @@ private fun RewardsApp(isParent: Boolean) {
                                 }
                             }
                         }
-                                                "wallet" -> {
+
+                        "wallet" -> {
                             SectionTitle(tr("walletTitle"))
 
                             CuteCard {
@@ -810,7 +882,7 @@ private fun RewardsApp(isParent: Boolean) {
         text = {
             Column(
                 Modifier
-                    .heightIn(max = 440.dp)
+                    .heightIn(max = 500.dp)
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -848,6 +920,32 @@ private fun RewardsApp(isParent: Boolean) {
 
                     if (isParent) {
                         Text(tr("codeTip"), color = Ink, fontSize = 12.sp)
+
+                        Divider(color = PaleBlue)
+                        Text("👨‍👩‍👧 第二位家长", color = Ink, fontWeight = FontWeight.Bold)
+                        Text(
+                            "点击下面按钮生成第二家长专用邀请码。邀请码只能使用一次，15 分钟后失效。",
+                            color = Ink,
+                            fontSize = 12.sp
+                        )
+
+                        CuteButton(
+                            if (loading) tr("processing") else "🎟 生成第二家长邀请码",
+                            !loading
+                        ) {
+                            generateParentInvite()
+                        }
+
+                        if (parentInviteCode.isNotBlank()) {
+                            Text(
+                                parentInviteCode,
+                                color = DeepSky,
+                                fontSize = 23.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = 2.sp
+                            )
+                            Text("请把这个邀请码交给第二位家长。", color = Ink, fontSize = 12.sp)
+                        }
                     }
 
                     TextButton(
@@ -860,13 +958,32 @@ private fun RewardsApp(isParent: Boolean) {
                         Text("🔗 ${tr("logoutFamily")}", color = DeletePink)
                     }
                 } else if (isParent) {
-                    Text("创建家庭后，把配对码交给孩子的手机。", color = Ink)
+                    Text("创建家庭后，把家庭配对码交给孩子的手机。", color = Ink)
 
                     CuteButton(
                         if (loading) tr("processing") else "✨ ${tr("create")}",
                         !loading
                     ) {
                         createFamily()
+                    }
+
+                    Divider(color = PaleBlue)
+                    Text("已经有家庭？输入第一位家长给你的邀请码。", color = Ink)
+
+                    OutlinedTextField(
+                        inputParentInviteCode,
+                        { inputParentInviteCode = it.uppercase(Locale.ROOT) },
+                        label = { Text("第二家长邀请码") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true
+                    )
+
+                    CuteButton(
+                        if (loading) tr("processing") else "💙 以第二位家长身份加入",
+                        !loading && inputParentInviteCode.isNotBlank()
+                    ) {
+                        joinAsSecondParent()
                     }
                 } else {
                     Text(tr("enterCode"), color = Ink)
@@ -894,9 +1011,7 @@ private fun RewardsApp(isParent: Boolean) {
                 Text(tr("done"))
             }
         }
-    )
-
-    if (recordToDelete != null) AlertDialog(
+    )    if (recordToDelete != null) AlertDialog(
         onDismissRequest = { recordToDelete = null },
         title = { Text(tr("deleteRecord")) },
         text = { Text(tr("confirmDeleteRecord")) },
@@ -980,6 +1095,7 @@ private fun RewardsApp(isParent: Boolean) {
         }
     )
 }
+
 private fun nowText(): String =
     SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date())
 
@@ -1104,3 +1220,7 @@ private fun StatusText(text: String, color: Color) {
         )
     }
 }
+    
+                        
+
+        
